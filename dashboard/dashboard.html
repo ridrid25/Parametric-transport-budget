@@ -547,29 +547,43 @@ var DEFAULT_PARAMS = {
 // -----------------------------------------------------------------------
 // Генерация клиентов (портировано из generateOneCustomer_ / populateCustomers_)
 // -----------------------------------------------------------------------
-function uniform(lo, hi) { return lo + Math.random() * (hi - lo); }
+// Детерминированный ГПСЧ (mulberry32): одинаковый seed → одна и та же последовательность.
+// Нужен, чтобы когорта роста клиентов при заданном customer_count_growth_pct была
+// воспроизводимой и не менялась при каждом пересчёте от движения посторонних ползунков.
+function makeSeededRandom(seed) {
+  var s = seed >>> 0;
+  return function () {
+    s = (s + 0x6D2B79F5) | 0;
+    var t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
 
-function pickSegment() {
-  var r = Math.random();
+function uniform(lo, hi, rand) { return lo + (rand || Math.random)() * (hi - lo); }
+
+function pickSegment(rand) {
+  var r = (rand || Math.random)();
   if (r < 0.70) return 'Розница';
   if (r < 0.95) return 'Опт';
   return 'Крупный дистрибьютор';
 }
 
-function pickDistance(segment) {
-  var r = Math.random();
+function pickDistance(segment, rand) {
+  rand = rand || Math.random;
+  var r = rand();
   if (segment === 'Розница') {
-    if (r < 0.75) return uniform(5, 100);
-    if (r < 0.95) return uniform(100, 300);
-    return uniform(300, 600);
+    if (r < 0.75) return uniform(5, 100, rand);
+    if (r < 0.95) return uniform(100, 300, rand);
+    return uniform(300, 600, rand);
   } else if (segment === 'Опт') {
-    if (r < 0.40) return uniform(20, 150);
-    if (r < 0.80) return uniform(150, 500);
-    return uniform(500, 900);
+    if (r < 0.40) return uniform(20, 150, rand);
+    if (r < 0.80) return uniform(150, 500, rand);
+    return uniform(500, 900, rand);
   } else {
-    if (r < 0.30) return uniform(100, 400);
-    if (r < 0.65) return uniform(400, 1000);
-    return uniform(1000, 2000);
+    if (r < 0.30) return uniform(100, 400, rand);
+    if (r < 0.65) return uniform(400, 1000, rand);
+    return uniform(1000, 2000, rand);
   }
 }
 
@@ -585,15 +599,16 @@ function tierForWeight(w) {
   return 'Heavy';
 }
 
-function generateOneCustomer(id) {
-  var segment = pickSegment();
+function generateOneCustomer(id, rand) {
+  rand = rand || Math.random;
+  var segment = pickSegment(rand);
   var prof = segmentProfile(segment);
-  var weight = Math.round(uniform(prof.w[0], prof.w[1]) * 10) / 10;
-  var orders = Math.floor(uniform(prof.o[0], prof.o[1] + 1));
-  var price = Math.round(uniform(prof.p[0], prof.p[1]) * 10) / 10;
-  var distance = Math.round(pickDistance(segment) * 10) / 10;
+  var weight = Math.round(uniform(prof.w[0], prof.w[1], rand) * 10) / 10;
+  var orders = Math.floor(uniform(prof.o[0], prof.o[1] + 1, rand));
+  var price = Math.round(uniform(prof.p[0], prof.p[1], rand) * 10) / 10;
+  var distance = Math.round(pickDistance(segment, rand) * 10) / 10;
   var revenue = Math.round(weight * orders * price);
-  var region = REGIONS[Math.floor(Math.random() * REGIONS.length)];
+  var region = REGIONS[Math.floor(rand() * REGIONS.length)];
   var tier = tierForWeight(weight);
   var name = 'Клиент ' + ('0000' + id).slice(-4);
   return {
@@ -610,17 +625,22 @@ function generateBaseCustomers(n) {
 }
 
 // Растит/сокращает базу клиентов согласно customer_count_growth_pct (не мутирует baseCustomers).
+// Случайность детерминированно засеяна значением growthPct: при одном и том же проценте роста
+// когорта всегда одинакова, поэтому движение посторонних ползунков (топливо, ставка аутсорса)
+// не меняет состав клиентов — дельты графиков и шаринг/localStorage воспроизводимы.
 function buildCustomerList(baseCustomers, growthPct) {
   var customers = baseCustomers.slice();
   growthPct = Number(growthPct) || 0;
+  if (growthPct === 0) return customers;
+  var rand = makeSeededRandom(0x9E3779B9 ^ Math.round(growthPct * 1000));
   if (growthPct > 0) {
     var toAdd = Math.round(customers.length * growthPct / 100);
     var maxId = customers.reduce(function (m, c) { return Math.max(m, c.customer_id); }, 0);
-    for (var i = 1; i <= toAdd; i++) customers.push(generateOneCustomer(maxId + i));
-  } else if (growthPct < 0) {
+    for (var i = 1; i <= toAdd; i++) customers.push(generateOneCustomer(maxId + i, rand));
+  } else {
     var toRemove = Math.min(customers.length, Math.round(customers.length * (-growthPct) / 100));
     for (var j = 0; j < toRemove; j++) {
-      var idx = Math.floor(Math.random() * customers.length);
+      var idx = Math.floor(rand() * customers.length);
       customers.splice(idx, 1);
     }
   }

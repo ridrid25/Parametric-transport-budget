@@ -202,14 +202,31 @@ function populateCustomers_(nCustomers) {
   sh.getRange(2, 1, rows.length, header.length).setValues(rows);
 }
 
+// Детерминированный ГПСЧ (mulberry32): одинаковый seed всегда даёт одну и ту же
+// последовательность. Нужен, чтобы состав "синтетических" клиентов при заданном
+// customer_count_growth_pct был воспроизводимым — одинаковым во всех листах прогона
+// и стабильным между пересчётами (см. buildCustomerList_).
+function makeSeededRandom_(seed) {
+  var s = seed >>> 0;
+  return function () {
+    s = (s + 0x6D2B79F5) | 0;
+    var t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 // Генерирует одного клиента со случайным профилем — используется и при первичной генерации
 // тестовых данных (populateCustomers_), и при моделировании роста числа клиентов
 // (buildCustomerList_), чтобы новые "синтетические" клиенты не отличались от исходных.
-function generateOneCustomer_(id) {
-  function uniform(lo, hi) { return lo + Math.random() * (hi - lo); }
+// rand — источник случайности (по умолчанию Math.random); buildCustomerList_ передаёт
+// сюда детерминированный ГПСЧ, чтобы когорта роста была воспроизводимой.
+function generateOneCustomer_(id, rand) {
+  rand = rand || Math.random;
+  function uniform(lo, hi) { return lo + rand() * (hi - lo); }
 
   function pickSegment() {
-    var r = Math.random();
+    var r = rand();
     if (r < 0.70) return 'Розница';
     if (r < 0.95) return 'Опт';
     return 'Крупный дистрибьютор';
@@ -219,7 +236,7 @@ function generateOneCustomer_(id) {
   // Опт — региональная/межрегиональная. Крупный дистрибьютор — дальнобойные маршруты
   // (крупные партии оправдывают дальние перевозки).
   function pickDistance(segment) {
-    var r = Math.random();
+    var r = rand();
     if (segment === 'Розница') {
       if (r < 0.75) return uniform(5, 100);
       if (r < 0.95) return uniform(100, 300);
@@ -254,7 +271,7 @@ function generateOneCustomer_(id) {
   var price = Math.round(uniform(prof.p[0], prof.p[1]) * 10) / 10;
   var distance = Math.round(pickDistance(segment) * 10) / 10;
   var revenue = Math.round(weight * orders * price);
-  var region = REGIONS[Math.floor(Math.random() * REGIONS.length)];
+  var region = REGIONS[Math.floor(rand() * REGIONS.length)];
   var tier = tierForWeight(weight);
   var name = 'Клиент ' + ('0000' + id).slice(-4);
 
@@ -267,21 +284,26 @@ function generateOneCustomer_(id) {
 
 // Строит список клиентов для расчёта бюджета с учётом параметра customer_count_growth_pct:
 // при росте — добавляет синтетических клиентов с теми же профилями сегментов; при оттоке —
-// случайно убирает часть существующих. Вызывается ОДИН РАЗ за прогон (не на каждый месяц
-// и не на каждый шаг сценария), чтобы состав клиентов был одинаковым во всех расчётах прогона.
+// убирает часть существующих. Случайность детерминированно засеяна значением growthPct, поэтому
+// при одном и том же customer_count_growth_pct когорта всегда одинакова — состав клиентов
+// совпадает во всех листах прогона (бюджет / сценарии / разбивки) и не "плывёт" от того,
+// сколько раз функция вызвана. Меняется только при изменении самого параметра роста.
 function buildCustomerList_(params) {
   var customers = getCustomers_();
   var growthPct = Number(params.customer_count_growth_pct) || 0;
+  if (growthPct === 0) return customers;
+  // Seed зависит только от growthPct (масштабируем, чтобы дробные проценты тоже различались).
+  var rand = makeSeededRandom_(0x9E3779B9 ^ Math.round(growthPct * 1000));
   if (growthPct > 0) {
     var toAdd = Math.round(customers.length * growthPct / 100);
     var maxId = customers.reduce(function (m, c) { return Math.max(m, c.customer_id); }, 0);
     for (var i = 1; i <= toAdd; i++) {
-      customers.push(generateOneCustomer_(maxId + i));
+      customers.push(generateOneCustomer_(maxId + i, rand));
     }
-  } else if (growthPct < 0) {
+  } else {
     var toRemove = Math.min(customers.length, Math.round(customers.length * (-growthPct) / 100));
     for (var j = 0; j < toRemove; j++) {
-      var idx = Math.floor(Math.random() * customers.length);
+      var idx = Math.floor(rand() * customers.length);
       customers.splice(idx, 1);
     }
   }
