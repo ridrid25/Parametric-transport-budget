@@ -90,5 +90,10 @@
 ```
 apps-script/Code.gs        — скрипт для Google Sheets (генерация данных + бюджет + дашборд)
 dashboard/dashboard.html   — автономный интерактивный дашборд
+samples/                   — готовые образцы данных (xlsx + csv для Google Sheets)
+tools/                     — скрипты проверки модели и сборки образцов (без Google Sheets)
+tools/legacy/              — ранние версии (исторический генератор и статичный предпросмотр)
 README.md
 ```
+
+Подробности по инструментам — в [`tools/README.md`](tools/README.md): `harness.js` прогоняет `Code.gs` через заглушку Apps Script и проверяет сходимость расчётов, `export_inputs.js` + `build_sample_data.py` пересобирают образцы в `samples/`.

@@ -1,0 +1,716 @@
+<title>Транспортный бюджет — предпросмотр дашборда</title>
+<style>
+  .viz-root {
+    --page: #f9f9f7;
+    --surface-1: #fcfcfb;
+    --text-primary: #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted: #898781;
+    --grid: #e1e0d9;
+    --axis: #c3c2b7;
+    --border: rgba(11,11,11,0.10);
+    --s1: #2a78d6; /* blue */
+    --s2: #1baf7a; /* aqua */
+    --s3: #eda100; /* yellow */
+    --s4: #008300; /* green */
+    --s5: #4a3aa7; /* violet */
+    --s6: #e34948; /* red */
+    --s7: #e87ba4; /* magenta */
+    --s8: #eb6834; /* orange */
+  }
+  @media (prefers-color-scheme: dark) {
+    .viz-root {
+      --page: #0d0d0d;
+      --surface-1: #1a1a19;
+      --text-primary: #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted: #898781;
+      --grid: #2c2c2a;
+      --axis: #383835;
+      --border: rgba(255,255,255,0.10);
+      --s1: #3987e5; --s2: #199e70; --s3: #c98500; --s4: #008300;
+      --s5: #9085e9; --s6: #e66767; --s7: #d55181; --s8: #d95926;
+    }
+  }
+  :root[data-theme="dark"] .viz-root {
+    --page: #0d0d0d; --surface-1: #1a1a19; --text-primary: #ffffff; --text-secondary: #c3c2b7;
+    --text-muted: #898781; --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+    --s1: #3987e5; --s2: #199e70; --s3: #c98500; --s4: #008300;
+    --s5: #9085e9; --s6: #e66767; --s7: #d55181; --s8: #d95926;
+  }
+  :root[data-theme="light"] .viz-root {
+    --page: #f9f9f7; --surface-1: #fcfcfb; --text-primary: #0b0b0b; --text-secondary: #52514e;
+    --text-muted: #898781; --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10);
+    --s1: #2a78d6; --s2: #1baf7a; --s3: #eda100; --s4: #008300;
+    --s5: #4a3aa7; --s6: #e34948; --s7: #e87ba4; --s8: #eb6834;
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  .viz-root {
+    background: var(--page);
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding: 24px 20px 60px;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .subtitle { color: var(--text-secondary); font-size: 14px; margin: 0 0 24px; }
+  .stat-row {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px; margin-bottom: 28px;
+  }
+  .stat-tile {
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+  }
+  .stat-tile .label { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
+  .stat-tile .value { font-size: 22px; font-weight: 600; }
+  .stat-tile .sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+  .section-title {
+    font-size: 15px; font-weight: 600; margin: 32px 0 12px;
+    padding-top: 16px; border-top: 1px solid var(--border);
+  }
+  .section-title:first-of-type { border-top: none; padding-top: 0; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 820px) { .grid2 { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px 18px 10px; position: relative;
+  }
+  .card h3 { font-size: 13px; font-weight: 600; margin: 0 0 2px; }
+  .card .desc { font-size: 11.5px; color: var(--text-muted); margin: 0 0 8px; }
+  .card svg { display: block; width: 100%; height: auto; overflow: visible; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 11.5px; color: var(--text-secondary); margin-top: 6px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-swatch { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+
+  .tooltip {
+    position: fixed; pointer-events: none; z-index: 50;
+    background: var(--text-primary); color: var(--surface-1);
+    font-size: 11.5px; padding: 6px 9px; border-radius: 6px;
+    line-height: 1.5; box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+    opacity: 0; transition: opacity 0.08s ease; max-width: 240px;
+  }
+  .tooltip.show { opacity: 1; }
+  .tooltip b { font-weight: 600; }
+
+  .axis-label { font-size: 10.5px; fill: var(--text-muted); }
+  .value-label { font-size: 10.5px; fill: var(--text-secondary); }
+  .grid-line { stroke: var(--grid); stroke-width: 1; }
+  .baseline { stroke: var(--axis); stroke-width: 1; }
+
+  .footnote { font-size: 11.5px; color: var(--text-muted); margin-top: 28px; line-height: 1.6; }
+  .footnote code { background: var(--border); padding: 1px 5px; border-radius: 4px; }
+</style>
+
+<div class="viz-root">
+  <div class="wrap">
+    <h1>Транспортный бюджет — предпросмотр</h1>
+    <p class="subtitle">Данные сгенерированы тем же Apps Script (Code.gs), что вставляется в Google Sheets — 13 машин, 1000 покупателей, 12 месяцев сезонности, сценарий выручки 0% (базовый).</p>
+
+    <div class="stat-row" id="statRow"></div>
+
+    <div class="section-title">Бюджет по месяцам</div>
+    <div class="grid2">
+      <div class="card">
+        <h3>Доля транспортных расходов в выручке</h3>
+        <p class="desc">По месяцам, % — ниже в высокий сезон (окт–дек) за счёт роста объёма при тех же постоянных расходах</p>
+        <svg id="chartRatio" viewBox="0 0 520 260"></svg>
+      </div>
+      <div class="card">
+        <h3>Структура расходов: постоянные vs переменные</h3>
+        <p class="desc">По месяцам, млн ₽</p>
+        <svg id="chartStructure" viewBox="0 0 520 260"></svg>
+        <div class="legend" id="legendStructure"></div>
+      </div>
+    </div>
+    <div class="grid2" style="margin-top:16px;">
+      <div class="card">
+        <h3>Расходы за год по статьям</h3>
+        <p class="desc">Аутсорс (3PL) доминирует — собственный парк не покрывает весь требуемый пробег</p>
+        <svg id="chartCategories" viewBox="0 0 520 260"></svg>
+        <div class="legend" id="legendCategories"></div>
+      </div>
+      <div class="card">
+        <h3>Как меняются расходы при изменении выручки</h3>
+        <p class="desc">Сценарии от −30% до +50% выручки: доля расходов в выручке падает (эффект масштаба)</p>
+        <svg id="chartElasticity" viewBox="0 0 520 260"></svg>
+      </div>
+    </div>
+
+    <div class="section-title">По видам транспорта</div>
+    <div class="grid2">
+      <div class="card">
+        <h3>Структура расходов по видам транспорта</h3>
+        <p class="desc">Постоянные / переменные (свой парк) / аутсорс, млн ₽ за год</p>
+        <svg id="chartTierStructure" viewBox="0 0 520 260"></svg>
+        <div class="legend" id="legendTierStructure"></div>
+      </div>
+      <div class="card">
+        <h3>Загрузка собственного парка</h3>
+        <p class="desc">Требуемый пробег ÷ мощность парка, % — везде &gt;100%: 13 машин не покрывают весь объём, отсюда аутсорс</p>
+        <svg id="chartUtilization" viewBox="0 0 520 260"></svg>
+      </div>
+    </div>
+
+    <div class="section-title">По регионам</div>
+    <div class="grid2">
+      <div class="card">
+        <h3>Выручка по регионам за год</h3>
+        <p class="desc">Топ регионов из 20, отсортировано по выручке</p>
+        <svg id="chartRegionRevenue" viewBox="0 0 520 420"></svg>
+      </div>
+      <div class="card">
+        <h3>Доля переменных расходов в выручке по регионам</h3>
+        <p class="desc">Выше там, где в среднем больше расстояние до клиента</p>
+        <svg id="chartRegionRatio" viewBox="0 0 520 420"></svg>
+      </div>
+    </div>
+
+    <div class="section-title">По клиентам</div>
+    <div class="card">
+      <h3>Топ-20 клиентов по выручке за год</h3>
+      <p class="desc">Крупные дистрибьюторы (полные фуры) дают наибольшую выручку с клиента, несмотря на меньшую частоту заказов</p>
+      <svg id="chartTopCustomers" viewBox="0 0 520 420"></svg>
+    </div>
+
+    <div class="section-title">По сегментам клиентов</div>
+    <div class="card">
+      <h3>Выручка на клиента в год по сегментам</h3>
+      <p class="desc">Крупный дистрибьютор даёт выручку в разы больше, чем розница, при заметно меньшем числе клиентов</p>
+      <svg id="chartSegments" viewBox="0 0 520 260"></svg>
+    </div>
+
+    <div class="section-title">По дистанции</div>
+    <div class="grid2">
+      <div class="card">
+        <h3>Выручка по дистанционным поясам</h3>
+        <p class="desc">5–2000 км от склада — большинство клиентов локальные, но дальние дают заметную долю выручки</p>
+        <svg id="chartBandRevenue" viewBox="0 0 520 260"></svg>
+      </div>
+      <div class="card">
+        <h3>Доля переменных расходов в выручке по дистанции</h3>
+        <p class="desc">Чем дальше клиент, тем дороже его обслуживание относительно выручки с него</p>
+        <svg id="chartBandRatio" viewBox="0 0 520 260"></svg>
+      </div>
+    </div>
+
+    <div class="section-title">Себестоимость километра</div>
+    <div class="card">
+      <h3>Свой парк vs аутсорс, руб/км</h3>
+      <p class="desc">Почему рост объёма сверх мощности парка обходится дорого: аутсорс дороже своего парка в 1.1–2.6 раза (ставка аутсорса — фактическая, с учётом скидки за объём)</p>
+      <svg id="chartCostPerKm" viewBox="0 0 520 260"></svg>
+      <div class="legend" id="legendCostPerKm"></div>
+    </div>
+
+    <div class="section-title">CAPEX vs аутсорс</div>
+    <div class="card">
+      <h3>Докупка машин: чистый эффект за год</h3>
+      <p class="desc">Пример: докупили 3 лёгких машины сверх текущих 5 — экономия на аутсорсе минус доп. амортизация/страховка/оклад. Положительное значение = докупка окупается в первый же год</p>
+      <svg id="chartCapex" viewBox="0 0 520 260"></svg>
+    </div>
+
+    <p class="footnote">
+      Предпросмотр посчитан локальным прогоном той же логики, что в <code>Code.gs</code> (случайная генерация данных — при каждом запуске в Google Sheets числа будут немного другими, но структура и выводы те же).
+      Полный дашборд с этими графиками строится в самой Google Таблице после запуска меню «Транспортный бюджет → Собрать всё с нуля».
+    </p>
+  </div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script type="application/json" id="chart-data">
+{"months": [{"name": "Январь", "revenue": 329669965.94600016, "fixed": 1828280, "fuel": 1510247.7890133345, "maint": 477491.52000000025, "tolls": 106324.91690941664, "driverVar": 497713.92000000004, "perdiem": 287703.2107254731, "outsource": 13033809.599999992, "variableTotal": 15913290.956648218, "totalCost": 17741570.956648216, "ratio": 5.381615794371235}, {"name": "Февраль", "revenue": 349062316.88399994, "fixed": 1828280, "fuel": 1495585.1891200007, "maint": 477491.52000000025, "tolls": 106250.08273519628, "driverVar": 497713.92, "perdiem": 286641.3371072586, "outsource": 13222229.999999993, "variableTotal": 16085912.048962448, "totalCost": 17914192.048962448, "ratio": 5.132089939950657}, {"name": "Март", "revenue": 368454667.8220002, "fixed": 1828280, "fuel": 1466259.989333334, "maint": 477491.52000000025, "tolls": 106225.38637787985, "driverVar": 497713.92000000004, "perdiem": 286542.8993737051, "outsource": 13359679.199999992, "variableTotal": 16193912.915084912, "totalCost": 18022192.915084913, "ratio": 4.891291789466867}, {"name": "Апрель", "revenue": 387847018.75999975, "fixed": 1828280, "fuel": 1451597.3894400005, "maint": 477491.52000000025, "tolls": 106238.77834445305, "driverVar": 497713.9200000001, "perdiem": 286539.110165884, "outsource": 13430323.199999992, "variableTotal": 16249903.917950328, "totalCost": 18078183.91795033, "ratio": 4.6611635628265935}, {"name": "Май", "revenue": 387847018.75999975, "fixed": 1828280, "fuel": 1466259.989333334, "maint": 477491.52000000025, "tolls": 106238.77834445305, "driverVar": 497713.9200000001, "perdiem": 286539.110165884, "outsource": 13430323.199999992, "variableTotal": 16264566.517843664, "totalCost": 18092846.517843664, "ratio": 4.664944074003452}, {"name": "Июнь", "revenue": 368454667.8220002, "fixed": 1828280, "fuel": 1480922.5892266673, "maint": 477491.52000000025, "tolls": 106225.38637787985, "driverVar": 497713.92000000004, "perdiem": 286542.8993737051, "outsource": 13359679.199999992, "variableTotal": 16208575.514978245, "totalCost": 18036855.514978245, "ratio": 4.89527127491619}, {"name": "Июль", "revenue": 349062316.88399994, "fixed": 1828280, "fuel": 1495585.1891200007, "maint": 477491.52000000025, "tolls": 106250.08273519628, "driverVar": 497713.92, "perdiem": 286641.3371072586, "outsource": 13222229.999999993, "variableTotal": 16085912.048962448, "totalCost": 17914192.048962448, "ratio": 5.132089939950657}, {"name": "Август", "revenue": 368454667.8220002, "fixed": 1828280, "fuel": 1495585.1891200007, "maint": 477491.52000000025, "tolls": 106225.38637787985, "driverVar": 497713.92000000004, "perdiem": 286542.8993737051, "outsource": 13359679.199999992, "variableTotal": 16223238.114871578, "totalCost": 18051518.114871576, "ratio": 4.899250760365515}, {"name": "Сентябрь", "revenue": 407239369.698, "fixed": 1828280, "fuel": 1466259.989333334, "maint": 477491.52000000025, "tolls": 106248.05114118654, "driverVar": 497713.92000000016, "perdiem": 286716.76060224965, "outsource": 13536381.599999992, "variableTotal": 16370811.841076763, "totalCost": 18199091.84107676, "ratio": 4.468893038159061}, {"name": "Октябрь", "revenue": 426631720.6359999, "fixed": 1828280, "fuel": 1466259.989333334, "maint": 477491.52000000025, "tolls": 106255.2544057341, "driverVar": 497713.92, "perdiem": 286605.5229739514, "outsource": 13958708.399999991, "variableTotal": 16793034.60671301, "totalCost": 18621314.60671301, "ratio": 4.364728102953372}, {"name": "Ноябрь", "revenue": 484808773.4500003, "fixed": 1828280, "fuel": 1480922.5892266673, "maint": 477491.5200000002, "tolls": 106260.75928146823, "driverVar": 497713.92000000004, "perdiem": 286906.8155640408, "outsource": 14448940.799999993, "variableTotal": 17298236.40407217, "totalCost": 19126516.40407217, "ratio": 3.945167136304876}, {"name": "Декабрь", "revenue": 542985826.2639999, "fixed": 1828280, "fuel": 1524910.388906668, "maint": 477491.5200000002, "tolls": 106061.22372990506, "driverVar": 497713.92000000016, "perdiem": 286220.6339409603, "outsource": 14162615.199999994, "variableTotal": 17055012.886577528, "totalCost": 18883292.886577528, "ratio": 3.477676943522364}], "totals": {"revenue": 4770518330.747999, "fixed": 21939360, "totalCost": 218681767.77374128, "ratio": 4.584025311552525}, "categories": [{"label": "Постоянные расходы", "value": 21939360}, {"label": "Топливо", "value": 17800396.270506673}, {"label": "ТО и ремонт", "value": 5729898.240000005}, {"label": "Платные дороги", "value": 1274804.0867606488}, {"label": "Доплата водителям (сдельная)", "value": 5972567.04}, {"label": "Суточные / командировочные", "value": 3440142.536474076}, {"label": "Аутсорс (3PL)", "value": 162524599.5999999}], "scenarios": [{"pct": -30, "revenue": 3339362831.5236015, "fixed": 21939360, "variable": 180682973.2972541, "total": 202622333.2972541, "ratio": 6.067694453100401, "marginal": null}, {"pct": -20, "revenue": 3816414664.5984006, "fixed": 21939360, "variable": 186613064.28952044, "total": 208552424.28952044, "ratio": 5.464616469066689, "marginal": 1.2430705808306897}, {"pct": -10, "revenue": 4293466497.673202, "fixed": 21939360, "variable": 193040319.2024378, "total": 214979679.2024378, "ratio": 5.007135360644917, "marginal": 1.3472864932707544}, {"pct": 0, "revenue": 4770518330.747999, "fixed": 21939360, "variable": 196742407.77374128, "total": 218681767.77374128, "ratio": 4.584025311552525, "marginal": 0.7760348697209669}, {"pct": 10, "revenue": 5247570163.822799, "fixed": 21939360, "variable": 200151537.41173345, "total": 222090897.41173345, "ratio": 4.23226160829344, "marginal": 0.7146245757025815}, {"pct": 20, "revenue": 5724621996.897602, "fixed": 21939360, "variable": 205113750.78166765, "total": 227053110.78166765, "ratio": 3.9662550803304857, "marginal": 1.0401832727380191}, {"pct": 30, "revenue": 6201673829.9724, "fixed": 21939360, "variable": 207630214.93495807, "total": 229569574.93495807, "ratio": 3.7017357124694152, "marginal": 0.5275032981365488}, {"pct": 40, "revenue": 6678725663.047203, "fixed": 21939360, "variable": 210844541.6047724, "total": 232783901.6047724, "ratio": 3.485453862744282, "marginal": 0.6737898163175701}, {"pct": 50, "revenue": 7155777496.122001, "fixed": 21939360, "variable": 216740086.2794138, "total": 238679446.2794138, "ratio": 3.335478868770915, "marginal": 1.2358289531437625}], "tiers": [{"label": "Лёгкий (Газели, до 3т)", "count": 8, "revenue": 1434438650.0579987, "km": 1808940.1999999986, "capacityKm": 532224, "utilization": 339.8832446488694, "fixed": 6063360, "variableOwn": 8457553.888703104, "outsource": 53191834.79999994, "totalCost": 67712748.68870305, "ratio": 4.72050503421427, "ownCostPerKm": 15.89096675216282, "outsourceRate": 41.6630060776232, "multiplier": 2.6218043702062817}, {"label": "Средний (5-10т)", "count": 5, "revenue": 2217601324.8719997, "km": 2111268.5999999996, "capacityKm": 406560, "utilization": 519.3006198347107, "fixed": 5850000, "variableOwn": 10259600.16565309, "outsource": 70933261.99999997, "totalCost": 87042862.16565306, "ratio": 3.9250906458886243, "ownCostPerKm": 25.235144051685094, "outsourceRate": 41.61019777808359, "multiplier": 1.6488987616975794}, {"label": "Тяжёлый (фуры, 15-20т)", "count": 3, "revenue": 1118478355.8179996, "km": 1346103.7999999998, "capacityKm": 422400, "utilization": 318.67987689393937, "fixed": 5826000, "variableOwn": 15500654.119385209, "outsource": 38399502.800000004, "totalCost": 59726156.91938521, "ratio": 5.339947492833195, "ownCostPerKm": 36.69662433566574, "outsourceRate": 41.57122965175635, "multiplier": 1.1328352513163709}], "regions": [{"region": "Екатеринбург", "count": 55, "revenue": 330594106.326, "km": 302586.39999999997, "variableCost": 11371548.471286673, "ratio": 3.4397311548177303, "avgDistance": 216.5745454545455}, {"region": "Санкт-Петербург", "count": 48, "revenue": 319911470.9639999, "km": 324892.5999999999, "variableCost": 12232473.735256972, "ratio": 3.8237058828795507, "avgDistance": 243.27083333333337}, {"region": "Новосибирск", "count": 53, "revenue": 317034064.9289999, "km": 392523.00000000006, "variableCost": 14978197.68147538, "ratio": 4.724475801939379, "avgDistance": 254.5169811320755}, {"region": "Воронеж", "count": 53, "revenue": 305531191.7670001, "km": 336281.80000000005, "variableCost": 12930754.422715707, "ratio": 4.2322207261171485, "avgDistance": 207.48113207547163}, {"region": "Ленинградская обл.", "count": 48, "revenue": 284510716.98, "km": 279712.80000000005, "variableCost": 10464270.27757835, "ratio": 3.67798808728669, "avgDistance": 218.22708333333333}, {"region": "Пермь", "count": 56, "revenue": 279117623.80200005, "km": 260625.7999999999, "variableCost": 9688592.16021374, "ratio": 3.471150272863679, "avgDistance": 172.6428571428572}, {"region": "Омск", "count": 47, "revenue": 271858126.65599996, "km": 189743.80000000002, "variableCost": 7015267.61185929, "ratio": 2.5804884695377055, "avgDistance": 146.67659574468084}, {"region": "Самара", "count": 51, "revenue": 271586950.15500003, "km": 191673.80000000008, "variableCost": 7098489.696778994, "ratio": 2.6137079461026187, "avgDistance": 124.68235294117646}, {"region": "Владивосток", "count": 47, "revenue": 268774259.46300006, "km": 375955.5999999999, "variableCost": 14238624.024386482, "ratio": 5.297614456397227, "avgDistance": 295.1148936170212}, {"region": "Москва", "count": 62, "revenue": 256095513.31199998, "km": 331068.00000000006, "variableCost": 12376378.67411584, "ratio": 4.832719837242036, "avgDistance": 210.67580645161294}, {"region": "Московская обл.", "count": 52, "revenue": 237047892.59699997, "km": 303369, "variableCost": 11315907.121618615, "ratio": 4.773679697231709, "avgDistance": 220.90769230769234}, {"region": "Казань", "count": 50, "revenue": 222912646.62, "km": 239880.60000000003, "variableCost": 8797072.487712845, "ratio": 3.9464214440507925, "avgDistance": 190.89599999999996}, {"region": "Красноярск", "count": 39, "revenue": 204813354.42900002, "km": 250182.60000000003, "variableCost": 9487706.679438904, "ratio": 4.632367213500174, "avgDistance": 235.21794871794876}, {"region": "Краснодар", "count": 56, "revenue": 191110121.84400004, "km": 258056.8, "variableCost": 9486940.152928118, "ratio": 4.9641222879194995, "avgDistance": 184.22321428571428}, {"region": "Нижний Новгород", "count": 43, "revenue": 186781558.611, "km": 192379.99999999994, "variableCost": 7044834.869579683, "ratio": 3.7716972285532666, "avgDistance": 158.2186046511628}, {"region": "Волгоград", "count": 51, "revenue": 181863601.02600005, "km": 199431.8, "variableCost": 7335376.014954922, "ratio": 4.033449229846836, "avgDistance": 157.23137254901957}, {"region": "Ростов-на-Дону", "count": 48, "revenue": 173309195.673, "km": 263570, "variableCost": 9764809.720168855, "ratio": 5.634328681897012, "avgDistance": 208.0687500000001}, {"region": "Челябинск", "count": 44, "revenue": 172424157.29099998, "km": 238622.79999999984, "variableCost": 9017518.022280643, "ratio": 5.229846074910369, "avgDistance": 203.88181818181812}, {"region": "Уфа", "count": 53, "revenue": 156701494.716, "km": 164680, "variableCost": 5916370.575043481, "ratio": 3.775567416102886, "avgDistance": 129.29622641509434}, {"region": "Иркутск", "count": 44, "revenue": 138540283.587, "km": 171075.39999999997, "variableCost": 6181275.374347887, "ratio": 4.461716992564255, "avgDistance": 161.79999999999998}], "topCustomers": [{"name": "Клиент 0679", "region": "Санкт-Петербург", "segment": "Крупный дистрибьютор", "tier": "Тяжёлый (фуры, 15-20т)", "distance": 937.3, "revenue": 51340396.800000004, "share": 1.0762015843250936}, {"name": "Клиент 0328", "region": "Владивосток", "segment": "Крупный дистрибьютор", "tier": "Тяжёлый (фуры, 15-20т)", "distance": 805.1, "revenue": 48042606.900000006, "share": 1.0070730435197508}, {"name": "Клиент 0302", "region": "Омск", "segment": "Крупный дистрибьютор", "tier": "Тяжёлый (фуры, 15-20т)", "distance": 114.6, "revenue": 43871676.900000006, "share": 0.9196416687371339}, {"name": "Клиент 0721", "region": "Московская обл.", "segment": "Крупный дистрибьютор", "tier": "Тяжёлый (фуры, 15-20т)", "distance": 543.2, "revenue": 42393155.400000006, "share": 0.8886487804866342}, {"name": "Клиент 0266", "region": "Нижний Новгород", "segment": "Крупный дистрибьютор", "tier": "Тяжёлый (фуры, 15-20т)", "distance": 989.5, "revenue": 39923106.300000004, "share": 0.8368714098298344}, {"name": "Клиент 0557", "region": "Екатеринбург", "segment": "Крупный дистрибьютор", "tier": "Тяжёлый (фуры, 15-20т)", "distance": 403, "revenue": 39322546.50000001, "share": 0.824282426328991}, {"name": "Клиент 0283", "region": "Ленинградская обл.", "segment": "Крупный дистрибьютор", "tier": "Тяжёлый (фуры, 15-20т)", "distance": 408, "revenue": 37911146.1, "share": 0.7946965360501478}, {"name": "Клиент 0778", "region": "Новосибирск", "segment": "Крупный дистрибьютор", "tier": "Тяжёлый (фуры, 15-20т)", "distance": 1065.2, "revenue": 37153921.2, "share": 0.7788235259476934}, {"name": "Клиент 0375", "region": "Новосибирск", "segment": "Крупный дистрибьютор", "tier": "Тяжёлый (фуры, 15-20т)", "distance": 1241.7, "revenue": 36971659.800000004, "share": 0.7750029476182072}, {"name": "Клиент 0994", "region": "Красноярск", "segment": "Крупный дистрибьютор", "tier": "Тяжёлый (фуры, 15-20т)", "distance": 974.9, "revenue": 36791784.6, "share": 0.7712323890077059}, {"name": "Клиент 0821", "region": "Самара", "segment": "Крупный дистрибьютор", "tier": "Тяжёлый (фуры, 15-20т)", "distance": 354.1, "revenue": 35909173.50000001, "share": 0.75273102315611}, {"name": "Клиент 0764", "region": "Пермь", "segment": "Крупный дистрибьютор", "tier": "Тяжёлый (фуры, 15-20т)", "distance": 917.3, "revenue": 34755101.400000006, "share": 0.7285392696859577}, {"name": "Клиент 0861", "region": "Владивосток", "segment": "Крупный дистрибьютор", "tier": "Тяжёлый (фуры, 15-20т)", "distance": 102.6, "revenue": 33948319.800000004, "share": 0.7116274479969532}, {"name": "Клиент 0525", "region": "Ленинградская обл.", "segment": "Крупный дистрибьютор", "tier": "Тяжёлый (фуры, 15-20т)", "distance": 775.2, "revenue": 32322210.600000005, "share": 0.6775408143438684}, {"name": "Клиент 0456", "region": "Самара", "segment": "Крупный дистрибьютор", "tier": "Тяжёлый (фуры, 15-20т)", "distance": 800.1, "revenue": 32308508.400000006, "share": 0.6772535877101089}, {"name": "Клиент 0170", "region": "Самара", "segment": "Крупный дистрибьютор", "tier": "Тяжёлый (фуры, 15-20т)", "distance": 209.6, "revenue": 29812727.700000003, "share": 0.6249368291558004}, {"name": "Клиент 0195", "region": "Омск", "segment": "Крупный дистрибьютор", "tier": "Тяжёлый (фуры, 15-20т)", "distance": 366.1, "revenue": 29109339.900000002, "share": 0.6101923567337458}, {"name": "Клиент 0814", "region": "Омск", "segment": "Крупный дистрибьютор", "tier": "Тяжёлый (фуры, 15-20т)", "distance": 734.6, "revenue": 28894803.300000004, "share": 0.6056952230299464}, {"name": "Клиент 0117", "region": "Воронеж", "segment": "Крупный дистрибьютор", "tier": "Тяжёлый (фуры, 15-20т)", "distance": 1595.9, "revenue": 28597266.300000004, "share": 0.5994582281729971}, {"name": "Клиент 0220", "region": "Омск", "segment": "Опт", "tier": "Средний (5-10т)", "distance": 147.5, "revenue": 27520401.300000004, "share": 0.5768848962289743}], "bands": [{"label": "0–100 км", "count": 585, "revenue": 1654359026.109, "km": 778081.8000000007, "cost": 26533099.8295671, "ratio": 1.6038296047486202, "costPerKm": 34.10065603586548}, {"label": "100–300 км", "count": 218, "revenue": 1105337863.4850001, "km": 1056870.0000000005, "cost": 37448744.37080743, "ratio": 3.3879907318777582, "costPerKm": 35.43363362647006}, {"label": "300–600 км", "count": 124, "revenue": 956356118.754, "km": 1438697.0000000002, "cost": 54059318.112726584, "ratio": 5.652634730162904, "costPerKm": 37.57519346514699}, {"label": "600–1000 км", "count": 57, "revenue": 741476432.2709999, "km": 1280363, "cost": 50093869.05436687, "ratio": 6.755962411500925, "costPerKm": 39.12473966708416}, {"label": "1000–2000 км", "count": 16, "revenue": 312988890.129, "km": 712300.7999999999, "cost": 28607376.406273443, "ratio": 9.140061295620674, "costPerKm": 40.16193215882033}], "segments": [{"segment": "Розница", "count": 705, "revenue": 1434438828.9, "share": 30.0688237041365, "revenuePerCustomer": 2034665.005531915, "avgWeight": 164.99148936170224, "ordersPerMonth": 2.9673758865248225, "avgDistance": 106.83602836879426}, {"segment": "Опт", "count": 249, "revenue": 2217601390.8, "share": 46.4855411904509, "revenuePerCustomer": 8906029.68192771, "avgWeight": 1611.7196787148605, "ordersPerMonth": 1.9839357429718876, "avgDistance": 318.8333333333331}, {"segment": "Крупный дистрибьютор", "count": 46, "revenue": 1118478384.6, "share": 23.445635105412595, "revenuePerCustomer": 24314747.491304345, "avgWeight": 7692.260869565217, "ordersPerMonth": 1.5869565217391304, "avgDistance": 912.3391304347825}], "capex": [{"label": "Лёгкий (Газели, до 3т)", "extraVehicles": 3, "extraFixed": 2273760, "outsourceSavings": 7824324.8000000045, "netEffect": 5550564.8000000045, "utilBefore": 543.813191438191, "utilAfter": 339.8832446488694}, {"label": "Средний (5-10т)", "extraVehicles": 0, "extraFixed": 0, "outsourceSavings": -621068.8000000119, "netEffect": -621068.8000000119, "utilBefore": 519.3006198347107, "utilAfter": 519.3006198347107}, {"label": "Тяжёлый (фуры, 15-20т)", "extraVehicles": 0, "extraFixed": 0, "outsourceSavings": -329873.6000000015, "netEffect": -329873.6000000015, "utilBefore": 318.67987689393937, "utilAfter": 318.67987689393937}]}
+</script>
+
+<script>
+(function () {
+  var DATA = JSON.parse(document.getElementById('chart-data').textContent);
+  var tooltip = document.getElementById('tooltip');
+  var root = document.querySelector('.viz-root');
+  var cssVar = function (name) { return getComputedStyle(root).getPropertyValue(name).trim(); };
+
+  function fmtMoney(v) {
+    if (Math.abs(v) >= 1e9) return (v / 1e9).toFixed(2) + ' млрд ₽';
+    if (Math.abs(v) >= 1e6) return (v / 1e6).toFixed(1) + ' млн ₽';
+    if (Math.abs(v) >= 1e3) return (v / 1e3).toFixed(0) + ' тыс ₽';
+    return v.toFixed(0) + ' ₽';
+  }
+  function fmtPct(v) { return v.toFixed(1) + '%'; }
+  function fmtKm(v) { return Math.round(v).toLocaleString('ru-RU') + ' км'; }
+  function fmtNum(v) { return Math.round(v).toLocaleString('ru-RU'); }
+
+  function showTooltip(evt, html) {
+    tooltip.innerHTML = html;
+    tooltip.classList.add('show');
+    moveTooltip(evt);
+  }
+  function moveTooltip(evt) {
+    var x = evt.clientX, y = evt.clientY;
+    var pad = 14;
+    tooltip.style.left = Math.min(x + pad, window.innerWidth - 250) + 'px';
+    tooltip.style.top = Math.max(y - 10, 8) + 'px';
+  }
+  function hideTooltip() { tooltip.classList.remove('show'); }
+
+  function svgEl(tag, attrs) {
+    var el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for (var k in attrs) el.setAttribute(k, attrs[k]);
+    return el;
+  }
+
+  function niceMax(v) {
+    if (v <= 0) return 1;
+    var p = Math.pow(10, Math.floor(Math.log10(v)));
+    var n = v / p;
+    var step = n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10;
+    return step * p;
+  }
+
+  // ---------------------------------------------------------------------
+  // LINE CHART (one or two series, shared y-axis, e.g. % or ₽)
+  // ---------------------------------------------------------------------
+  function lineChart(svg, opts) {
+    var W = 520, H = 260, ML = opts.marginLeft || 44, MR = opts.marginRight || 14, MT = 14, MB = 30;
+    var innerW = W - ML - MR, innerH = H - MT - MB;
+    var labels = opts.labels;
+    var series = opts.series; // [{name,color,values}]
+    var yFmt = opts.yFmt || fmtNum;
+    var allVals = [];
+    series.forEach(function (s) { allVals = allVals.concat(s.values); });
+    var yMax = niceMax(Math.max.apply(null, allVals) * 1.15);
+    var yMin = Math.min(0, Math.min.apply(null, allVals));
+    var n = labels.length;
+    var x = function (i) { return ML + (innerW * i) / (n - 1); };
+    var y = function (v) { return MT + innerH - ((v - yMin) / (yMax - yMin)) * innerH; };
+
+    svg.innerHTML = '';
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+
+    // gridlines (4 steps)
+    var steps = 4;
+    for (var g = 0; g <= steps; g++) {
+      var gv = yMin + ((yMax - yMin) * g) / steps;
+      var gy = y(gv);
+      svg.appendChild(svgEl('line', { x1: ML, x2: W - MR, y1: gy, y2: gy, class: 'grid-line' }));
+      var t = svgEl('text', { x: ML - 8, y: gy + 3, class: 'axis-label', 'text-anchor': 'end' });
+      t.textContent = yFmt(gv);
+      svg.appendChild(t);
+    }
+    svg.appendChild(svgEl('line', { x1: ML, x2: W - MR, y1: MT + innerH, y2: MT + innerH, class: 'baseline' }));
+
+    // x labels (sparse if many)
+    var showEvery = n > 10 ? 2 : 1;
+    for (var i = 0; i < n; i++) {
+      if (i % showEvery !== 0 && i !== n - 1) continue;
+      var lx = svgEl('text', { x: x(i), y: H - 8, class: 'axis-label', 'text-anchor': 'middle' });
+      lx.textContent = labels[i];
+      svg.appendChild(lx);
+    }
+
+    series.forEach(function (s) {
+      var d = s.values.map(function (v, i) { return (i === 0 ? 'M' : 'L') + x(i) + ',' + y(v); }).join(' ');
+      svg.appendChild(svgEl('path', { d: d, fill: 'none', stroke: s.color, 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+      s.values.forEach(function (v, i) {
+        var dot = svgEl('circle', { cx: x(i), cy: y(v), r: 4, fill: s.color, stroke: cssVar('--surface-1'), 'stroke-width': 2 });
+        dot.style.cursor = 'pointer';
+        dot.addEventListener('mousemove', function (e) {
+          showTooltip(e, '<b>' + labels[i] + '</b><br>' + s.name + ': ' + yFmt(v));
+        });
+        dot.addEventListener('mouseleave', hideTooltip);
+        svg.appendChild(dot);
+      });
+      // end label
+      var last = s.values[s.values.length - 1];
+      var endLbl = svgEl('text', { x: x(n - 1) + 6, y: y(last) - 8, class: 'value-label', 'text-anchor': 'start' });
+      endLbl.textContent = yFmt(last);
+      svg.appendChild(endLbl);
+    });
+  }
+
+  // ---------------------------------------------------------------------
+  // STACKED COLUMN CHART
+  // ---------------------------------------------------------------------
+  function stackedColumn(svg, opts) {
+    var W = 520, H = 260, ML = 50, MR = 14, MT = 14, MB = 30;
+    var innerW = W - ML - MR, innerH = H - MT - MB;
+    var labels = opts.labels;
+    var series = opts.series; // [{name,color,values}]
+    var yFmt = opts.yFmt || fmtNum;
+    var n = labels.length;
+    var totals = labels.map(function (_, i) { return series.reduce(function (s, ser) { return s + ser.values[i]; }, 0); });
+    var yMax = niceMax(Math.max.apply(null, totals) * 1.15);
+    var gap = 2;
+    var slot = innerW / n;
+    var barW = Math.min(24, slot * 0.55);
+
+    svg.innerHTML = '';
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+
+    var steps = 4;
+    for (var g = 0; g <= steps; g++) {
+      var gv = (yMax * g) / steps;
+      var gy = MT + innerH - (gv / yMax) * innerH;
+      svg.appendChild(svgEl('line', { x1: ML, x2: W - MR, y1: gy, y2: gy, class: 'grid-line' }));
+      var t = svgEl('text', { x: ML - 8, y: gy + 3, class: 'axis-label', 'text-anchor': 'end' });
+      t.textContent = yFmt(gv);
+      svg.appendChild(t);
+    }
+    svg.appendChild(svgEl('line', { x1: ML, x2: W - MR, y1: MT + innerH, y2: MT + innerH, class: 'baseline' }));
+
+    var showEvery = n > 10 ? 2 : 1;
+    for (var i = 0; i < n; i++) {
+      var cx = ML + slot * i + slot / 2;
+      var yCursor = MT + innerH;
+      series.forEach(function (s) {
+        var v = s.values[i];
+        var segH = (v / yMax) * innerH;
+        var rectY = yCursor - segH;
+        var rect = svgEl('rect', {
+          x: cx - barW / 2, y: rectY, width: barW, height: Math.max(0, segH - gap),
+          fill: s.color, rx: 2
+        });
+        rect.style.cursor = 'pointer';
+        (function (label, name, val) {
+          rect.addEventListener('mousemove', function (e) {
+            showTooltip(e, '<b>' + label + '</b><br>' + name + ': ' + yFmt(val));
+          });
+          rect.addEventListener('mouseleave', hideTooltip);
+        })(labels[i], s.name, v);
+        svg.appendChild(rect);
+        yCursor = rectY;
+      });
+      if (i % showEvery === 0 || i === n - 1) {
+        var lx = svgEl('text', { x: cx, y: H - 8, class: 'axis-label', 'text-anchor': 'middle' });
+        lx.textContent = labels[i];
+        svg.appendChild(lx);
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------------
+  // HORIZONTAL BAR CHART (single series, magnitude)
+  // ---------------------------------------------------------------------
+  function barChartH(svg, opts) {
+    var labels = opts.labels, values = opts.values, color = opts.color, yFmt = opts.yFmt || fmtNum;
+    var n = labels.length;
+    var W = opts.width || 520;
+    var rowH = 18, gap = 4;
+    var MT = 8, MB = 8, ML = opts.labelWidth || 118, MR = 60;
+    var H = MT + MB + n * (rowH + gap);
+    var innerW = W - ML - MR;
+    var vMax = niceMax(Math.max.apply(null, values) * 1.08);
+
+    svg.innerHTML = '';
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+
+    for (var i = 0; i < n; i++) {
+      var y0 = MT + i * (rowH + gap);
+      var w = (values[i] / vMax) * innerW;
+      var lbl = svgEl('text', { x: ML - 8, y: y0 + rowH * 0.7, class: 'axis-label', 'text-anchor': 'end' });
+      lbl.textContent = labels[i];
+      svg.appendChild(lbl);
+      var rect = svgEl('rect', { x: ML, y: y0, width: Math.max(1, w), height: rowH, fill: color, rx: 3 });
+      rect.style.cursor = 'pointer';
+      (function (label, val) {
+        rect.addEventListener('mousemove', function (e) {
+          showTooltip(e, '<b>' + label + '</b><br>' + yFmt(val));
+        });
+        rect.addEventListener('mouseleave', hideTooltip);
+      })(labels[i], values[i]);
+      svg.appendChild(rect);
+      var vlbl = svgEl('text', { x: ML + w + 6, y: y0 + rowH * 0.7, class: 'value-label', 'text-anchor': 'start' });
+      vlbl.textContent = yFmt(values[i]);
+      svg.appendChild(vlbl);
+    }
+  }
+
+  // ---------------------------------------------------------------------
+  // DIVERGING COLUMN CHART (values can be positive or negative, zero baseline)
+  // ---------------------------------------------------------------------
+  function divergingColumn(svg, opts) {
+    var W = 520, H = 260, ML = 60, MR = 14, MT = 14, MB = 30;
+    var innerW = W - ML - MR, innerH = H - MT - MB;
+    var labels = opts.labels, values = opts.values;
+    var posColor = opts.posColor, negColor = opts.negColor;
+    var yFmt = opts.yFmt || fmtNum;
+    var n = labels.length;
+    var maxAbs = Math.max.apply(null, values.map(function (v) { return Math.abs(v); }));
+    var yMax = niceMax(maxAbs * 1.25 || 1);
+    var yMin = -yMax;
+    var yToPx = function (v) { return MT + innerH - ((v - yMin) / (yMax - yMin)) * innerH; };
+    var zeroY = yToPx(0);
+    var slot = innerW / n;
+    var barW = Math.min(28, slot * 0.5);
+
+    svg.innerHTML = '';
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+
+    var steps = 4;
+    for (var g = 0; g <= steps; g++) {
+      var gv = yMin + ((yMax - yMin) * g) / steps;
+      var gy = yToPx(gv);
+      svg.appendChild(svgEl('line', { x1: ML, x2: W - MR, y1: gy, y2: gy, class: 'grid-line' }));
+      var t = svgEl('text', { x: ML - 8, y: gy + 3, class: 'axis-label', 'text-anchor': 'end' });
+      t.textContent = yFmt(gv);
+      svg.appendChild(t);
+    }
+    svg.appendChild(svgEl('line', { x1: ML, x2: W - MR, y1: zeroY, y2: zeroY, class: 'baseline' }));
+
+    for (var i = 0; i < n; i++) {
+      var cx = ML + slot * i + slot / 2;
+      var v = values[i];
+      var vy = yToPx(v);
+      var y0 = v >= 0 ? vy : zeroY;
+      var h = Math.abs(vy - zeroY);
+      var rect = svgEl('rect', { x: cx - barW / 2, y: y0, width: barW, height: Math.max(1, h),
+        fill: v >= 0 ? posColor : negColor, rx: 3 });
+      rect.style.cursor = 'pointer';
+      (function (label, val) {
+        rect.addEventListener('mousemove', function (e) {
+          showTooltip(e, '<b>' + label + '</b><br>' + yFmt(val));
+        });
+        rect.addEventListener('mouseleave', hideTooltip);
+      })(labels[i], v);
+      svg.appendChild(rect);
+
+      var lx = svgEl('text', { x: cx, y: H - 8, class: 'axis-label', 'text-anchor': 'middle' });
+      lx.textContent = labels[i];
+      svg.appendChild(lx);
+
+      var vlbl = svgEl('text', { x: cx, y: v >= 0 ? y0 - 6 : y0 + h + 12, class: 'value-label', 'text-anchor': 'middle' });
+      vlbl.textContent = yFmt(v);
+      svg.appendChild(vlbl);
+    }
+  }
+
+  // ---------------------------------------------------------------------
+  // DONUT CHART
+  // ---------------------------------------------------------------------
+  function donutChart(svg, opts) {
+    var W = 520, H = 260;
+    var cx = 130, cy = H / 2, rOuter = 92, rInner = 55;
+    var slices = opts.slices; // [{label,value,color}]
+    var total = slices.reduce(function (s, sl) { return s + sl.value; }, 0);
+    svg.innerHTML = '';
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+
+    var angle = -Math.PI / 2;
+    var gapRad = 0.012;
+    slices.forEach(function (sl) {
+      var frac = sl.value / total;
+      var a0 = angle + gapRad / 2;
+      var a1 = angle + frac * Math.PI * 2 - gapRad / 2;
+      if (a1 < a0) a1 = a0;
+      var largeArc = (a1 - a0) > Math.PI ? 1 : 0;
+      var x0o = cx + rOuter * Math.cos(a0), y0o = cy + rOuter * Math.sin(a0);
+      var x1o = cx + rOuter * Math.cos(a1), y1o = cy + rOuter * Math.sin(a1);
+      var x1i = cx + rInner * Math.cos(a1), y1i = cy + rInner * Math.sin(a1);
+      var x0i = cx + rInner * Math.cos(a0), y0i = cy + rInner * Math.sin(a0);
+      var d = ['M', x0o, y0o, 'A', rOuter, rOuter, 0, largeArc, 1, x1o, y1o,
+        'L', x1i, y1i, 'A', rInner, rInner, 0, largeArc, 0, x0i, y0i, 'Z'].join(' ');
+      var path = svgEl('path', { d: d, fill: sl.color });
+      path.style.cursor = 'pointer';
+      (function (label, val, pct) {
+        path.addEventListener('mousemove', function (e) {
+          showTooltip(e, '<b>' + label + '</b><br>' + fmtMoney(val) + ' (' + pct.toFixed(1) + '%)');
+        });
+        path.addEventListener('mouseleave', hideTooltip);
+      })(sl.label, sl.value, frac * 100);
+      svg.appendChild(path);
+      angle += frac * Math.PI * 2;
+    });
+
+    var centerLbl = svgEl('text', { x: cx, y: cy - 4, 'text-anchor': 'middle', class: 'axis-label', style: 'font-size:11px' });
+    centerLbl.textContent = 'Итого за год';
+    svg.appendChild(centerLbl);
+    var centerVal = svgEl('text', { x: cx, y: cy + 14, 'text-anchor': 'middle', 'font-size': 13, 'font-weight': 600, fill: cssVar('--text-primary') });
+    centerVal.textContent = fmtMoney(total);
+    svg.appendChild(centerVal);
+
+    // right-side value list (mitigates low-contrast slices per palette warning)
+    var lx = 250, ly = 40;
+    slices.forEach(function (sl) {
+      var pct = (sl.value / total) * 100;
+      var sw = svgEl('rect', { x: lx, y: ly - 9, width: 10, height: 10, rx: 2, fill: sl.color });
+      svg.appendChild(sw);
+      var t = svgEl('text', { x: lx + 16, y: ly, class: 'value-label', 'text-anchor': 'start' });
+      t.textContent = sl.label + ' — ' + pct.toFixed(1) + '%';
+      svg.appendChild(t);
+      ly += 22;
+    });
+  }
+
+  // ---------------------------------------------------------------------
+  // Данные
+  // ---------------------------------------------------------------------
+  var months = DATA.months;
+  var monthNames = months.map(function (m) { return m.name.slice(0, 3); });
+
+  // Stat row
+  var statRow = document.getElementById('statRow');
+  var stats = [
+    { label: 'Выручка за год', value: fmtMoney(DATA.totals.revenue) },
+    { label: 'Транспортные расходы за год', value: fmtMoney(DATA.totals.totalCost) },
+    { label: 'Доля расходов в выручке', value: fmtPct(DATA.totals.ratio) },
+    { label: 'Постоянные расходы', value: fmtMoney(DATA.totals.fixed), sub: 'не зависят от выручки' }
+  ];
+  stats.forEach(function (s) {
+    var tile = document.createElement('div');
+    tile.className = 'stat-tile';
+    tile.innerHTML = '<div class="label">' + s.label + '</div><div class="value">' + s.value + '</div>' + (s.sub ? '<div class="sub">' + s.sub + '</div>' : '');
+    statRow.appendChild(tile);
+  });
+
+  // 1. Cost ratio by month
+  lineChart(document.getElementById('chartRatio'), {
+    labels: monthNames,
+    series: [{ name: 'Доля расходов в выручке', color: cssVar('--s1'), values: months.map(function (m) { return m.ratio; }) }],
+    yFmt: fmtPct
+  });
+
+  // 2. Structure fixed vs variable
+  stackedColumn(document.getElementById('chartStructure'), {
+    labels: monthNames,
+    series: [
+      { name: 'Постоянные', color: cssVar('--s1'), values: months.map(function (m) { return m.fixed / 1e6; }) },
+      { name: 'Переменные (вкл. аутсорс)', color: cssVar('--s2'), values: months.map(function (m) { return m.variableTotal / 1e6; }) }
+    ],
+    yFmt: function (v) { return v.toFixed(0) + ' млн'; }
+  });
+  renderLegend('legendStructure', [
+    { name: 'Постоянные', color: cssVar('--s1') },
+    { name: 'Переменные (вкл. аутсорс)', color: cssVar('--s2') }
+  ]);
+
+  // 3. Categories donut
+  var catColors = ['--s1', '--s2', '--s3', '--s4', '--s5', '--s6', '--s7', '--s8'];
+  var catSlices = DATA.categories.map(function (c, i) { return { label: c.label, value: c.value, color: cssVar(catColors[i]) }; });
+  donutChart(document.getElementById('chartCategories'), { slices: catSlices });
+
+  // 4. Elasticity
+  lineChart(document.getElementById('chartElasticity'), {
+    labels: DATA.scenarios.map(function (s) { return (s.pct > 0 ? '+' : '') + s.pct + '%'; }),
+    series: [{ name: 'Доля расходов в выручке', color: cssVar('--s1'), values: DATA.scenarios.map(function (s) { return s.ratio; }) }],
+    yFmt: fmtPct
+  });
+
+  // 5. Tier structure
+  var tierLabelsShort = DATA.tiers.map(function (t) { return t.label.split(' (')[0]; });
+  stackedColumn(document.getElementById('chartTierStructure'), {
+    labels: tierLabelsShort,
+    series: [
+      { name: 'Постоянные', color: cssVar('--s1'), values: DATA.tiers.map(function (t) { return t.fixed / 1e6; }) },
+      { name: 'Переменные (свой парк)', color: cssVar('--s2'), values: DATA.tiers.map(function (t) { return t.variableOwn / 1e6; }) },
+      { name: 'Аутсорс (3PL)', color: cssVar('--s3'), values: DATA.tiers.map(function (t) { return t.outsource / 1e6; }) }
+    ],
+    yFmt: function (v) { return v.toFixed(0) + ' млн'; }
+  });
+  renderLegend('legendTierStructure', [
+    { name: 'Постоянные', color: cssVar('--s1') },
+    { name: 'Переменные (свой парк)', color: cssVar('--s2') },
+    { name: 'Аутсорс (3PL)', color: cssVar('--s3') }
+  ]);
+
+  // 6. Utilization by tier
+  barChartH(document.getElementById('chartUtilization'), {
+    labels: tierLabelsShort,
+    values: DATA.tiers.map(function (t) { return t.utilization; }),
+    color: cssVar('--s1'),
+    yFmt: fmtPct
+  });
+
+  // 7. Revenue by region
+  barChartH(document.getElementById('chartRegionRevenue'), {
+    labels: DATA.regions.map(function (r) { return r.region; }),
+    values: DATA.regions.map(function (r) { return r.revenue; }),
+    color: cssVar('--s1'),
+    yFmt: fmtMoney
+  });
+
+  // 8. Cost ratio by region
+  barChartH(document.getElementById('chartRegionRatio'), {
+    labels: DATA.regions.map(function (r) { return r.region; }),
+    values: DATA.regions.map(function (r) { return r.ratio; }),
+    color: cssVar('--s1'),
+    yFmt: fmtPct
+  });
+
+  // 9. Top customers by revenue
+  barChartH(document.getElementById('chartTopCustomers'), {
+    labels: DATA.topCustomers.map(function (c) { return c.name + ' (' + c.region + ')'; }),
+    values: DATA.topCustomers.map(function (c) { return c.revenue; }),
+    color: cssVar('--s1'),
+    yFmt: fmtMoney,
+    width: 900,
+    labelWidth: 200
+  });
+
+  // 10. Revenue per customer by segment
+  stackedColumn(document.getElementById('chartSegments'), {
+    labels: DATA.segments.map(function (s) { return s.segment; }),
+    series: [{ name: 'Выручка на клиента', color: cssVar('--s1'), values: DATA.segments.map(function (s) { return s.revenuePerCustomer / 1e6; }) }],
+    yFmt: function (v) { return v.toFixed(1) + ' млн'; }
+  });
+
+  // 11. Revenue by distance band
+  stackedColumn(document.getElementById('chartBandRevenue'), {
+    labels: DATA.bands.map(function (b) { return b.label; }),
+    series: [{ name: 'Выручка', color: cssVar('--s1'), values: DATA.bands.map(function (b) { return b.revenue / 1e6; }) }],
+    yFmt: function (v) { return v.toFixed(0) + ' млн'; }
+  });
+
+  // 12. Cost ratio by distance band (trend)
+  lineChart(document.getElementById('chartBandRatio'), {
+    labels: DATA.bands.map(function (b) { return b.label; }),
+    series: [{ name: 'Доля переменных расходов в выручке', color: cssVar('--s1'), values: DATA.bands.map(function (b) { return b.ratio; }) }],
+    yFmt: fmtPct
+  });
+
+  // 13. Own fleet cost/km vs outsource rate, by tier
+  lineChart(document.getElementById('chartCostPerKm'), {
+    labels: DATA.tiers.map(function (t) { return t.label.split(' (')[0]; }),
+    series: [
+      { name: 'Свой парк', color: cssVar('--s1'), values: DATA.tiers.map(function (t) { return t.ownCostPerKm; }) },
+      { name: 'Аутсорс (3PL)', color: cssVar('--s6'), values: DATA.tiers.map(function (t) { return t.outsourceRate; }) }
+    ],
+    yFmt: function (v) { return Math.round(v) + ' ₽/км'; },
+    marginLeft: 56,
+    marginRight: 46
+  });
+  renderLegend('legendCostPerKm', [
+    { name: 'Свой парк', color: cssVar('--s1') },
+    { name: 'Аутсорс (3PL)', color: cssVar('--s6') }
+  ]);
+
+  // 14. CAPEX vs outsource: net effect by tier
+  divergingColumn(document.getElementById('chartCapex'), {
+    labels: DATA.capex.map(function (c) { return c.label.split(' (')[0]; }),
+    values: DATA.capex.map(function (c) { return c.netEffect / 1e6; }),
+    posColor: cssVar('--s1'),
+    negColor: cssVar('--s6'),
+    yFmt: function (v) { return v.toFixed(1) + ' млн ₽'; }
+  });
+
+  function renderLegend(id, items) {
+    var el = document.getElementById(id);
+    el.innerHTML = '';
+    items.forEach(function (it) {
+      var d = document.createElement('div');
+      d.className = 'legend-item';
+      d.innerHTML = '<span class="legend-swatch" style="background:' + it.color + '"></span>' + it.name;
+      el.appendChild(d);
+    });
+  }
+
+  window.addEventListener('mousemove', function (e) {
+    if (tooltip.classList.contains('show')) moveTooltip(e);
+  });
+})();
+</script>
