@@ -108,6 +108,14 @@
     padding: 6px 12px; border-radius: 6px; cursor: pointer; white-space: nowrap;
   }
   .share-status { font-size: 11.5px; color: var(--text-muted); white-space: nowrap; }
+  .period-badge {
+    display: inline-block; vertical-align: middle; margin-left: 8px;
+    font-size: 12.5px; font-weight: 600; color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    border-radius: 999px; padding: 3px 11px; white-space: nowrap;
+  }
+  @media (max-width: 700px) { .period-badge { display: inline-block; margin: 6px 0 0; font-size: 12px; } }
   #exportFallback a { color: var(--accent); font-size: 12px; font-weight: 600; text-decoration: none; }
   #exportFallback a:hover { text-decoration: underline; }
 
@@ -336,23 +344,17 @@
     <div class="wrap">
       <div class="control-header">
         <div class="control-header-text">
-          <h1>Транспортный бюджет</h1>
-          <p class="subtitle" id="subtitleFull">13 машин, ~1000 клиентов, 12 месяцев сезонности. Двигайте параметры — всё пересчитывается вживую.</p>
+          <h1>Транспортный бюджет <span class="period-badge">📅 2026 год · январь–декабрь</span></h1>
+          <p class="subtitle" id="subtitleFull">Годовой план на 2026 год. 13 машин, ~1000 клиентов, 12 месяцев с сезонностью. Двигайте параметры — всё пересчитывается вживую.</p>
           <p class="subtitle summary-line" id="summaryLine"></p>
         </div>
         <div class="header-actions">
-          <button class="icon-btn" id="btnShare">🔗 Поделиться</button>
           <button class="icon-btn" id="btnExport">⬇ CSV</button>
           <button class="icon-btn" id="btnReset">Сбросить</button>
           <button class="icon-btn" id="btnCollapse">Параметры <span id="collapseIcon">▴</span></button>
         </div>
       </div>
 
-      <div class="share-box" id="shareBox">
-        <input type="text" id="shareUrlInput" readonly onclick="this.select()">
-        <button id="btnCopyShare">Копировать</button>
-        <span class="share-status" id="shareStatus"></span>
-      </div>
       <div class="share-box" id="exportFallback">
         <span class="share-status">Скачивание заблокировано окружением —</span>
         <a id="exportLink" download="transport-budget.csv">нажмите, чтобы сохранить CSV ⬇</a>
@@ -1670,37 +1672,6 @@ if (typeof module !== 'undefined') {
   }
   btnCollapse.addEventListener('click', function () {
     setCollapsed(!controlBody.classList.contains('collapsed'));
-  });
-
-  // ---- Поделиться ссылкой с текущими параметрами ----
-  var shareBox = document.getElementById('shareBox');
-  var shareUrlInput = document.getElementById('shareUrlInput');
-  var shareStatus = document.getElementById('shareStatus');
-  document.getElementById('btnShare').addEventListener('click', function () {
-    history.replaceState(null, '', '#' + serializeStateToHash());
-    var url = window.location.href;
-    shareUrlInput.value = url;
-    shareBox.classList.add('open');
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(url).then(function () {
-        shareStatus.textContent = 'Скопировано!';
-        setTimeout(function () { shareStatus.textContent = ''; }, 2500);
-      }, function () {
-        shareUrlInput.select();
-        shareStatus.textContent = 'Скопируйте вручную ↑';
-      });
-    } else {
-      shareUrlInput.select();
-      shareStatus.textContent = 'Скопируйте вручную ↑';
-    }
-  });
-  document.getElementById('btnCopyShare').addEventListener('click', function () {
-    shareUrlInput.select();
-    try {
-      document.execCommand('copy');
-      shareStatus.textContent = 'Скопировано!';
-      setTimeout(function () { shareStatus.textContent = ''; }, 2500);
-    } catch (e) { shareStatus.textContent = 'Выделите и Ctrl/⌘+C'; }
   });
 
   // Выгрузка помесячного бюджета текущего сценария в CSV
