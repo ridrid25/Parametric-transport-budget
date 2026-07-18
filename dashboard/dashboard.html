@@ -111,6 +111,36 @@
   #exportFallback a { color: var(--accent); font-size: 12px; font-weight: 600; text-decoration: none; }
   #exportFallback a:hover { text-decoration: underline; }
 
+  /* Встроенный переключатель вида: Компьютер / Телефон */
+  .viewport-toggle {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 10px 12px 2px;
+  }
+  .viewport-toggle .vt-label { font-size: 12px; color: var(--text-muted); margin-right: 2px; }
+  .viewport-toggle button {
+    border: 1px solid var(--border); background: var(--surface-1); color: var(--text-secondary);
+    font-size: 12px; font-family: inherit; font-weight: 600; cursor: pointer;
+    padding: 6px 12px; border-radius: 999px; display: inline-flex; align-items: center; gap: 5px;
+  }
+  .viewport-toggle button.active {
+    background: var(--accent); color: #fff; border-color: var(--accent);
+  }
+  /* Режим «Телефон»: узкая колонка по центру, как экран телефона.
+     Прокрутка обычная — всей страницы, без вложенного скролла и стрелок. */
+  body.phone-mode .wrap { max-width: 384px; }
+  body.phone-mode .viz-root { background: var(--surface-2); }
+  body.phone-mode .control-bar { background: var(--surface-2); border-bottom-color: transparent; }
+  body.phone-mode .wrap.top-pad {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 22px;
+    padding: 10px 14px 20px; margin-top: 6px; box-shadow: 0 6px 24px rgba(11,11,11,0.12);
+  }
+  body.phone-mode .control-bar .wrap {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 22px;
+    padding: 12px 14px; box-shadow: 0 6px 24px rgba(11,11,11,0.12);
+  }
+  /* В узкой колонке карточки графиков и статы идут в один столбец */
+  body.phone-mode .grid2, body.phone-mode .stat-row { grid-template-columns: 1fr; }
+
   .control-body {
     display: block; margin-top: 12px; max-height: 600px; overflow: hidden;
     transition: max-height 0.18s ease, margin-top 0.18s ease, opacity 0.18s ease;
@@ -265,6 +295,11 @@
 
 <div class="viz-root">
   <div class="top-accent"></div>
+  <div class="viewport-toggle">
+    <span class="vt-label">Просмотр:</span>
+    <button id="vpDesktop" class="active" type="button">💻 Компьютер</button>
+    <button id="vpPhone" type="button">📱 Телефон</button>
+  </div>
   <div class="control-bar">
     <div class="wrap">
       <div class="control-header">
@@ -1521,6 +1556,22 @@ if (typeof module !== 'undefined') {
       try { history.replaceState(null, '', '#' + serializeStateToHash()); } catch (e) { /* игнорируем, если недоступно */ }
     });
   }
+
+  // Переключатель вида «Компьютер / Телефон» (встроенный в страницу).
+  // Меняет ширину колонки и перерисовывает графики под неё; параметры не трогает.
+  (function () {
+    var vpDesktop = document.getElementById('vpDesktop');
+    var vpPhone = document.getElementById('vpPhone');
+    function setViewport(phone) {
+      document.body.classList.toggle('phone-mode', phone);
+      vpPhone.classList.toggle('active', phone);
+      vpDesktop.classList.toggle('active', !phone);
+      // после применения новой ширины перерисовываем чарты в следующем кадре
+      requestAnimationFrame(function () { recompute(); });
+    }
+    vpDesktop.addEventListener('click', function () { setViewport(false); });
+    vpPhone.addEventListener('click', function () { setViewport(true); });
+  })();
 
   function bindSlider(inputId, valId, key, fmt) {
     var input = document.getElementById(inputId);
