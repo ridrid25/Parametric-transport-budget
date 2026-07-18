@@ -175,6 +175,8 @@
   body.phone-mode .grid2 { grid-template-columns: 1fr; }
   /* KPI-плитки: по 2 в ряд и компактнее — важные цифры влезают в один экран */
   body.phone-mode .stat-row { grid-template-columns: 1fr 1fr; gap: 8px; }
+  /* Последняя плитка («Клиентов в базе») — на всю ширину, чтобы не висела кривым хвостом */
+  body.phone-mode .stat-row .stat-tile:last-child { grid-column: 1 / -1; }
   body.phone-mode .stat-tile { padding: 9px 11px; }
   body.phone-mode .stat-tile .value { font-size: 18px; }
   body.phone-mode .stat-tile .label { font-size: 10.5px; line-height: 1.25; }
