@@ -163,8 +163,13 @@
   }
   body.phone-mode .wrap { max-width: none; padding: 0 14px; }
   body.phone-mode .wrap.top-pad { padding-top: 12px; }
-  body.phone-mode .header-actions { flex-wrap: wrap; }
-  body.phone-mode .header-actions .icon-btn { font-size: 11px; padding: 6px 9px; }
+  /* Узкая колонка телефона: шапка вертикально — заголовок и текст на всю ширину,
+     кнопки в ряд под ними (иначе текст сдавливается в столбик по слову). */
+  body.phone-mode .control-header { flex-direction: column; align-items: stretch; }
+  body.phone-mode .control-header h1 { font-size: 16px; }
+  body.phone-mode .subtitle { font-size: 12.5px; }
+  body.phone-mode .header-actions { width: 100%; flex-wrap: nowrap; }
+  body.phone-mode .header-actions .icon-btn { flex: 1; padding: 7px 6px; font-size: 11px; }
   body.phone-mode .control-grid,
   body.phone-mode .advanced-panel,
   body.phone-mode .grid2,
