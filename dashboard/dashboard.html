@@ -273,6 +273,7 @@
         </div>
         <div class="header-actions">
           <button class="icon-btn" id="btnShare">🔗 Поделиться</button>
+          <button class="icon-btn" id="btnExport">⬇ CSV</button>
           <button class="icon-btn" id="btnReset">Сбросить</button>
           <button class="icon-btn" id="btnCollapse">Параметры <span id="collapseIcon">▴</span></button>
         </div>
@@ -1211,11 +1212,14 @@ if (typeof module !== 'undefined') {
 
   var catColors = ['--s1', '--s2', '--s3', '--s4', '--s5', '--s6', '--s7', '--s8'];
 
+  var lastExport = null; // снимок последнего пересчёта для выгрузки в CSV
+
   function recompute() {
     var params = currentParams();
     var customers = buildCustomerList(baseCustomers, params.customer_count_growth_pct);
     var result = computeMonthlyBudget(params.revenue_scenario_pct, true, customers, params);
     var months = result.months;
+    lastExport = { months: months, params: params, customerCount: customers.length };
     var monthNames = months.map(function (m) { return m.name || m.month_name.slice(0, 3); });
     monthNames = months.map(function (m) { return m.month_name.slice(0, 3); });
 
@@ -1593,6 +1597,66 @@ if (typeof module !== 'undefined') {
       shareStatus.textContent = 'Скопировано!';
       setTimeout(function () { shareStatus.textContent = ''; }, 2500);
     } catch (e) { shareStatus.textContent = 'Выделите и Ctrl/⌘+C'; }
+  });
+
+  // Выгрузка помесячного бюджета текущего сценария в CSV
+  function buildCsv() {
+    if (!lastExport) return '';
+    var p = lastExport.params;
+    var lines = [];
+    lines.push('Транспортный бюджет — выгрузка сценария');
+    // Параметры сценария в шапке файла
+    lines.push('Параметр;Значение');
+    [['Рост объёма у существующих клиентов, %', p.revenue_scenario_pct],
+     ['Рост/отток числа клиентов, %', p.customer_count_growth_pct],
+     ['Рост цены за кг, %', p.price_growth_pct],
+     ['Цена топлива, руб/л', p.fuel_price_rub_per_l],
+     ['Базовая ставка аутсорса, руб/км', p.outsource_rate_rub_per_km],
+     ['Докупка машин (лёгкие/средние/тяжёлые)', [p.additional_vehicles_light, p.additional_vehicles_medium, p.additional_vehicles_heavy].join('/')],
+     ['Клиентов в базе', lastExport.customerCount]].forEach(function (row) {
+      lines.push(row[0] + ';' + row[1]);
+    });
+    lines.push('');
+    // Помесячная таблица
+    var header = ['Месяц', 'Выручка', 'Постоянные', 'Топливо', 'ТО', 'Платные дороги',
+      'Доплата водителям', 'Суточные', 'Аутсорс (3PL)', 'Переменные всего', 'Итого расходы', 'Доля в выручке, %'];
+    lines.push(header.join(';'));
+    lastExport.months.forEach(function (m) {
+      lines.push([m.month_name, Math.round(m.revenue), Math.round(m.fixed_cost), Math.round(m.fuel),
+        Math.round(m.maintenance), Math.round(m.tolls), Math.round(m.driver_variable), Math.round(m.perdiem),
+        Math.round(m.outsource), Math.round(m.variable_total), Math.round(m.total_cost),
+        m.cost_ratio_pct.toFixed(2)].join(';'));
+    });
+    // Итоговая строка за год
+    function sum(f) { return lastExport.months.reduce(function (s, m) { return s + f(m); }, 0); }
+    var totRev = sum(function (m) { return m.revenue; });
+    var totCost = sum(function (m) { return m.total_cost; });
+    lines.push(['ИТОГО за год', Math.round(totRev), Math.round(sum(function (m) { return m.fixed_cost; })),
+      Math.round(sum(function (m) { return m.fuel; })), Math.round(sum(function (m) { return m.maintenance; })),
+      Math.round(sum(function (m) { return m.tolls; })), Math.round(sum(function (m) { return m.driver_variable; })),
+      Math.round(sum(function (m) { return m.perdiem; })), Math.round(sum(function (m) { return m.outsource; })),
+      Math.round(sum(function (m) { return m.variable_total; })), Math.round(totCost),
+      (totRev > 0 ? (totCost / totRev * 100) : 0).toFixed(2)].join(';'));
+    return lines.join('\n');
+  }
+  document.getElementById('btnExport').addEventListener('click', function () {
+    var csv = buildCsv();
+    if (!csv) return;
+    // BOM, чтобы Excel/Google Sheets корректно открыли кириллицу
+    var blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    try {
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'transport-budget.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    } catch (e) {
+      // Fallback для песочниц, где скачивание заблокировано: открыть data-URL в новой вкладке
+      try { window.open('data:text/csv;charset=utf-8,' + encodeURIComponent('﻿' + csv), '_blank'); } catch (e2) {}
+    }
   });
 
   document.getElementById('btnReset').addEventListener('click', function () {
