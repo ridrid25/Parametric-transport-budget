@@ -172,8 +172,19 @@
   body.phone-mode .header-actions .icon-btn { flex: 1; padding: 7px 6px; font-size: 11px; }
   body.phone-mode .control-grid,
   body.phone-mode .advanced-panel,
-  body.phone-mode .grid2,
-  body.phone-mode .stat-row { grid-template-columns: 1fr; }
+  body.phone-mode .grid2 { grid-template-columns: 1fr; }
+  /* KPI-плитки: по 2 в ряд и компактнее — важные цифры влезают в один экран */
+  body.phone-mode .stat-row { grid-template-columns: 1fr 1fr; gap: 8px; }
+  body.phone-mode .stat-tile { padding: 9px 11px; }
+  body.phone-mode .stat-tile .value { font-size: 18px; }
+  body.phone-mode .stat-tile .label { font-size: 10.5px; line-height: 1.25; }
+  body.phone-mode .stat-tile .sub { font-size: 9.5px; }
+  /* Компактная докупка машин — освобождает вертикаль */
+  body.phone-mode .stepper-group { gap: 7px; }
+  body.phone-mode .stepper-ic { font-size: 15px; }
+  body.phone-mode .stepper-label { font-size: 10px; gap: 1px; }
+  body.phone-mode .stepper-row button { height: 26px; font-size: 15px; }
+  body.phone-mode .stepper-row .stepper-val { font-size: 12px; }
   /* Круглые кнопки-стрелки прокрутки, закреплены в углу рамки */
   body.phone-mode .phone-nav {
     display: flex; flex-direction: column; gap: 12px;
