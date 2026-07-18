@@ -207,41 +207,51 @@
   @media (max-width: 900px) { .control-grid { grid-template-columns: 1fr 1fr; } }
   @media (max-width: 560px) { .control-grid { grid-template-columns: 1fr; } }
 
-  .ctrl { display: flex; flex-direction: column; gap: 6px; }
+  .ctrl {
+    display: flex; flex-direction: column; gap: 6px;
+    border-left: 3px solid var(--c, var(--border)); padding-left: 11px;
+  }
   .ctrl-label {
-    display: flex; justify-content: space-between; align-items: baseline;
+    display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
     font-size: 12.5px; font-weight: 600; color: var(--text-secondary);
   }
-  .ctrl-label .val { font-variant-numeric: tabular-nums; color: var(--accent); font-weight: 700; }
+  .ctrl-name { display: inline-flex; align-items: baseline; gap: 6px; min-width: 0; }
+  .ctrl-ic { font-size: 14px; line-height: 1; flex: none; }
+  .ctrl-label .val { font-variant-numeric: tabular-nums; color: var(--c, var(--accent)); font-weight: 700; flex: none; }
   .ctrl input[type="range"] {
     -webkit-appearance: none; appearance: none; width: 100%; height: 4px;
     border-radius: 2px; background: var(--grid); outline: none; cursor: pointer;
   }
   .ctrl input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
-    background: var(--accent); border: 2px solid var(--surface-1); box-shadow: 0 0 0 1px var(--accent);
+    background: var(--c, var(--accent)); border: 2px solid var(--surface-1); box-shadow: 0 0 0 1px var(--c, var(--accent));
     cursor: pointer;
   }
   .ctrl input[type="range"]::-moz-range-thumb {
     width: 16px; height: 16px; border-radius: 50%;
-    background: var(--accent); border: 2px solid var(--surface-1); box-shadow: 0 0 0 1px var(--accent);
+    background: var(--c, var(--accent)); border: 2px solid var(--surface-1); box-shadow: 0 0 0 1px var(--c, var(--accent));
     cursor: pointer;
   }
 
   .stepper-group { display: flex; gap: 10px; }
   .stepper { display: flex; flex-direction: column; gap: 6px; flex: 1; }
-  .stepper-label { font-size: 11px; color: var(--text-muted); text-align: center; }
+  .stepper-label {
+    font-size: 11px; color: var(--text-secondary); text-align: center;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+  }
+  .stepper-ic { font-size: 18px; line-height: 1; }
   .stepper-row {
-    display: flex; align-items: center; border: 1px solid var(--border);
+    display: flex; align-items: center; border: 1.5px solid var(--c, var(--border));
     border-radius: 8px; overflow: hidden; background: var(--surface-2);
   }
   .stepper-row button {
-    border: none; background: transparent; color: var(--text-primary); font-size: 15px;
-    width: 26px; height: 28px; cursor: pointer; font-weight: 600;
+    border: none; background: transparent; color: var(--c, var(--text-primary)); font-size: 16px;
+    width: 26px; height: 28px; cursor: pointer; font-weight: 700;
   }
-  .stepper-row button:hover { background: var(--border); }
+  .stepper-row button:hover { background: color-mix(in srgb, var(--c, var(--border)) 18%, transparent); }
   .stepper-row .stepper-val {
     flex: 1; text-align: center; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums;
+    color: var(--c, var(--text-primary));
   }
 
   .reset-btn {
@@ -367,40 +377,40 @@
 
       <div class="control-body" id="controlBody">
         <div class="control-grid">
-          <div class="ctrl">
-            <div class="ctrl-label"><span>Рост объёма у текущих клиентов</span><span class="val" id="valScenario">0%</span></div>
+          <div class="ctrl" style="--c: var(--s1)">
+            <div class="ctrl-label"><span class="ctrl-name"><span class="ctrl-ic">📦</span>Рост объёма у текущих клиентов</span><span class="val" id="valScenario">0%</span></div>
             <input type="range" id="ctrlScenario" min="-30" max="100" step="5" value="0">
           </div>
-          <div class="ctrl">
-            <div class="ctrl-label"><span>Рост / отток числа клиентов</span><span class="val" id="valCustGrowth">0%</span></div>
+          <div class="ctrl" style="--c: var(--s2)">
+            <div class="ctrl-label"><span class="ctrl-name"><span class="ctrl-ic">👥</span>Рост / отток числа клиентов</span><span class="val" id="valCustGrowth">0%</span></div>
             <input type="range" id="ctrlCustGrowth" min="-50" max="100" step="5" value="0">
           </div>
-          <div class="ctrl">
-            <div class="ctrl-label"><span>Рост цены за кг (без роста расходов)</span><span class="val" id="valPriceGrowth">0%</span></div>
+          <div class="ctrl" style="--c: var(--s7)">
+            <div class="ctrl-label"><span class="ctrl-name"><span class="ctrl-ic">🏷️</span>Рост цены за кг (без роста расходов)</span><span class="val" id="valPriceGrowth">0%</span></div>
             <input type="range" id="ctrlPriceGrowth" min="-20" max="50" step="5" value="0">
           </div>
         </div>
 
         <div class="control-grid" style="margin-top:14px; grid-template-columns: 1fr auto;">
           <div class="stepper-group">
-            <div class="stepper">
-              <div class="stepper-label">Докупить лёгких машин</div>
+            <div class="stepper" style="--c: var(--s5)">
+              <div class="stepper-label"><span class="stepper-ic">🚐</span>Докупить лёгких машин</div>
               <div class="stepper-row">
                 <button data-step="light" data-dir="-1">−</button>
                 <div class="stepper-val" id="valLight">0</div>
                 <button data-step="light" data-dir="1">+</button>
               </div>
             </div>
-            <div class="stepper">
-              <div class="stepper-label">Докупить средних машин</div>
+            <div class="stepper" style="--c: var(--s3)">
+              <div class="stepper-label"><span class="stepper-ic">🚚</span>Докупить средних машин</div>
               <div class="stepper-row">
                 <button data-step="medium" data-dir="-1">−</button>
                 <div class="stepper-val" id="valMedium">0</div>
                 <button data-step="medium" data-dir="1">+</button>
               </div>
             </div>
-            <div class="stepper">
-              <div class="stepper-label">Докупить тяжёлых машин</div>
+            <div class="stepper" style="--c: var(--s8)">
+              <div class="stepper-label"><span class="stepper-ic">🚛</span>Докупить тяжёлых машин</div>
               <div class="stepper-row">
                 <button data-step="heavy" data-dir="-1">−</button>
                 <div class="stepper-val" id="valHeavy">0</div>
@@ -412,12 +422,12 @@
         </div>
 
         <div class="advanced-panel" id="advancedPanel">
-          <div class="ctrl">
-            <div class="ctrl-label"><span>Цена топлива</span><span class="val" id="valFuel">62 ₽/л</span></div>
+          <div class="ctrl" style="--c: var(--s6)">
+            <div class="ctrl-label"><span class="ctrl-name"><span class="ctrl-ic">⛽</span>Цена топлива</span><span class="val" id="valFuel">62 ₽/л</span></div>
             <input type="range" id="ctrlFuel" min="40" max="100" step="1" value="62">
           </div>
-          <div class="ctrl">
-            <div class="ctrl-label"><span>Базовая ставка аутсорса (3PL)</span><span class="val" id="valOutsource">45 ₽/км</span></div>
+          <div class="ctrl" style="--c: var(--s4)">
+            <div class="ctrl-label"><span class="ctrl-name"><span class="ctrl-ic">🤝</span>Базовая ставка аутсорса (3PL)</span><span class="val" id="valOutsource">45 ₽/км</span></div>
             <input type="range" id="ctrlOutsource" min="25" max="70" step="1" value="45">
           </div>
           <div class="ctrl">
